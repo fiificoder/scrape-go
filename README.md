@@ -1,2 +1,2 @@
 # scrape-go
-web scrapping with Colly
+Golang web scraping with Colly

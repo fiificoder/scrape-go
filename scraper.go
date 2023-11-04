@@ -1,14 +1,12 @@
 package main
 
 import (
-	"encoding/json"
+	"encoding/csv"
 	"fmt"
 	"os"
 
 	"github.com/gocolly/colly"
 )
-
-var Items []item
 
 type item struct {
 	Name     string `json:"name"`
@@ -16,20 +14,22 @@ type item struct {
 	ImageUrl string `json:"imageUrl"`
 }
 
+var Items []item
+
+
 func main() {
 	c := colly.NewCollector(
 		colly.AllowedDomains("j2store.net"),
 	)
 
-	c.OnHTML("div.col-sm-9 div[itemprop=itemListElement]", func(h *colly.HTMLElement) {
+	c.OnHTML("div[itemprop=itemListElement]", func(h *colly.HTMLElement) {
 		item := item{
-			Name:     h.ChildText("h2.product-title"),
-			Price:    h.ChildText("div.sale-price"),
+			Name: h.ChildText("h2.product-title"),
+			Price: h.ChildText("div.sale-price"),
 			ImageUrl: h.ChildAttr("img", "src"),
 		}
 		Items = append(Items, item)
 	})
-
 
 	c.OnHTML("[title=Next]", func(h *colly.HTMLElement) {
 		nextPage := h.Request.AbsoluteURL(h.Attr("href"))
@@ -40,17 +40,25 @@ func main() {
 		fmt.Println(r.URL.String())
 	})
 
+	c.Visit("https://j2store.net/demo/index.php/shop")
+	//fmt.Println(Items)
 
-	c.Visit("http://j2store.net/demo/index.php/shop")
-
-
-	content, err := json.Marshal(Items)
-
+	//Creating a csvFile
+	file, err := os.Create("data.csv")
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 
-	os.WriteFile("json-Content", content, 0644)
-
+	defer file.Close()
+     // Writing to a csvFile
+	writer := csv.NewWriter(file)
+	for _, element :=  range Items {
+		data := []string{element.Name, element.Price, element.ImageUrl}
+		err := writer.Write(data)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+	writer.Flush()
 }
 
